@@ -133,9 +133,9 @@ resource "aws_security_group" "private_sg" {
 
   # No inbound from internet
   ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
     security_groups = [aws_security_group.alb_sg.id]
   }
 
@@ -148,28 +148,26 @@ resource "aws_security_group" "private_sg" {
 }
 
 resource "aws_instance" "private_ec2" {
-  ami           = "ami-0f5ee92e2d63afc18" # Amazon Linux 2 (ap-south-1)
-  instance_type = "t2.micro"
-
+  ami                    = "ami-019715e0d74f695be"
+  instance_type          = "t3.micro"
   subnet_id              = aws_subnet.private_az1.id
   vpc_security_group_ids = [aws_security_group.private_sg.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
 
-  associate_public_ip_address = false
-
-user_data = <<-EOF
-#!/bin/bash
-yum update -y
-yum install -y httpd
-systemctl enable httpd
-systemctl start httpd
-echo "<h1>HA Lab Working</h1>" > /var/www/html/index.html
-EOF
+  user_data = <<-EOF
+              #!/bin/bash
+              apt update -y
+              apt install -y apache2
+              systemctl start apache2
+              systemctl enable apache2
+              echo "<h1>HA Lab Working - $(hostname)</h1>" > /var/www/html/index.html
+              EOF
 
   tags = {
-    Name = "ha-lab-private-ec2"
+    Name = "Private-EC2-AZ1"
   }
 }
+
 
 resource "aws_security_group" "alb_sg" {
   name        = "ha-lab-alb-sg"
@@ -226,11 +224,6 @@ resource "aws_lb_target_group" "app_tg" {
     unhealthy_threshold = 2
   }
 }
-resource "aws_lb_target_group_attachment" "ec2_attach" {
-  target_group_arn = aws_lb_target_group.app_tg.arn
-  target_id        = aws_instance.private_ec2.id
-  port             = 80
-}
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.app_lb.arn
   port              = 80
@@ -257,4 +250,69 @@ resource "aws_route_table_association" "public_az2_assoc" {
   subnet_id      = aws_subnet.public_az2.id
   route_table_id = aws_route_table.public_rt.id
 }
-	
+
+# Laucnh Template	
+resource "aws_launch_template" "app_lt" {
+
+  name_prefix   = "ha-app-"
+  image_id      = "ami-019715e0d74f695be"
+  instance_type = "t3.micro"
+
+  iam_instance_profile {
+    name = aws_iam_instance_profile.ec2_profile.name
+  }
+
+  network_interfaces {
+    associate_public_ip_address = false
+    security_groups             = [aws_security_group.private_sg.id]
+  }
+
+  user_data = base64encode(<<-EOF
+              #!/bin/bash
+              apt update -y
+              apt install -y apache2
+              systemctl start apache2
+              systemctl enable apache2
+              echo "<h1>HA Lab via ASG - $(hostname)</h1>" > /var/www/html/index.html
+              EOF
+  )
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name = "ha-app-instance"
+    }
+  }
+}
+
+# Auto Scaling Group
+resource "aws_autoscaling_group" "app_asg" {
+  desired_capacity = 2
+  max_size         = 3
+  min_size         = 2
+  vpc_zone_identifier = [
+    aws_subnet.private_az1.id,
+    aws_subnet.private_az2.id
+  ]
+
+  launch_template {
+    id      = aws_launch_template.app_lt.id
+    version = "$Latest"
+  }
+
+  target_group_arns = [aws_lb_target_group.app_tg.arn]
+
+  health_check_type = "ELB"
+}
+
+# New Subnet
+resource "aws_subnet" "private_az2" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.4.0/24"
+  availability_zone       = "ap-south-1b"
+  map_public_ip_on_launch = false
+
+  tags = {
+    Name = "private-subnet-az2"
+  }
+}
