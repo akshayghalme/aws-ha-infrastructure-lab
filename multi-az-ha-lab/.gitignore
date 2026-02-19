@@ -1,10 +1,5 @@
-# Terraform files
 .terraform/
 *.tfstate
 *.tfstate.*
-*.tfvars
-*.backup
-crash.log
+.terraform.lock.hcl
 
-# OS
-.DS_Store
