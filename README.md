@@ -2,6 +2,9 @@
 
 Production-Grade Multi-AZ Architecture using Terraform (Infrastructure as Code)
 
+<img width="2880" height="2980" alt="aws-ha-architecture" src="https://github.com/user-attachments/assets/c7f9ba61-83ad-4581-b0f1-c6c2c66394de" />
+
+
 ---
 
 ## Overview
