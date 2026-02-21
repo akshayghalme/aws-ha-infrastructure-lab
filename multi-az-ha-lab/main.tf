@@ -247,13 +247,13 @@ resource "aws_launch_template" "app_lt" {
   }
 
   user_data = base64encode(<<-EOF
-              #!/bin/bash
-              apt update -y
-              apt install -y apache2
-              systemctl start apache2
-              systemctl enable apache2
-              echo "<h1>HA Lab via ASG - $(hostname)</h1>" > /var/www/html/index.html
-              EOF
+#!/bin/bash
+  apt update -y
+  apt install -y nginx
+  systemctl start nginx
+  systemctl enable nginx
+  echo "<h1>HA Lab via ASG - NGINX - $(hostname)</h1>" > /var/www/html/index.nginx-debian.html
+  EOF
   )
 
   tag_specifications {
@@ -266,9 +266,9 @@ resource "aws_launch_template" "app_lt" {
 
 # Auto Scaling Group
 resource "aws_autoscaling_group" "app_asg" {
-  desired_capacity = 2
-  max_size         = 3
-  min_size         = 2
+  desired_capacity = 0
+  max_size         = 0
+  min_size         = 0
   vpc_zone_identifier = [
     aws_subnet.private_az1.id,
     aws_subnet.private_az2.id

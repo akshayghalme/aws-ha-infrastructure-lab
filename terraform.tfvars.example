@@ -1,0 +1,17 @@
+# AWS Configuration
+aws_region    = "us-east-1"
+environment   = "prod"
+
+# Network
+vpc_cidr      = "10.0.0.0/16"
+az_count      = 2
+
+# EC2
+instance_type = "t3.micro"
+min_size      = 2
+max_size      = 6
+desired_size  = 2
+
+# Tags
+project_name  = "ha-infrastructure"
+owner         = "akshaygholve"

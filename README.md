@@ -1,3 +1,9 @@
+![Terraform Validate](https://github.com/akshaygholve/aws-ha-infrastructure-lab/actions/workflows/terraform-validate.yml/badge.svg)
+![Terraform](https://img.shields.io/badge/Terraform-1.7+-7B42BC?logo=terraform)
+![AWS](https://img.shields.io/badge/AWS-Multi--AZ-FF9900?logo=amazonaws)
+![Security](https://img.shields.io/badge/Security-tfsec%20%2B%20Checkov-red)
+![License](https://img.shields.io/badge/License-MIT-green)
+
 🚀 AWS High-Availability Infrastructure Lab
 
 Production-Style Multi-AZ Architecture using Terraform
