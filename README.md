@@ -1,216 +1,187 @@
-![Terraform Validate](https://github.com/akshaygholve/aws-ha-infrastructure-lab/actions/workflows/terraform-validate.yml/badge.svg)
-![Terraform](https://img.shields.io/badge/Terraform-1.7+-7B42BC?logo=terraform)
-![AWS](https://img.shields.io/badge/AWS-Multi--AZ-FF9900?logo=amazonaws)
-![Security](https://img.shields.io/badge/Security-tfsec%20%2B%20Checkov-red)
-![License](https://img.shields.io/badge/License-MIT-green)
+# AWS High-Availability Infrastructure Lab
 
-🚀 AWS High-Availability Infrastructure Lab
+Production-Grade Multi-AZ Architecture using Terraform (Infrastructure as Code)
 
-Production-Style Multi-AZ Architecture using Terraform
+<img width="2880" height="2980" alt="aws-ha-architecture" src="https://github.com/user-attachments/assets/c7f9ba61-83ad-4581-b0f1-c6c2c66394de" />
 
-📌 Project Overview
 
-This repository demonstrates the design and implementation of a production-grade, highly available AWS architecture using Infrastructure as Code (Terraform).
+---
 
-The goal of this project is not just provisioning resources — but engineering a resilient, secure, and scalable infrastructure aligned with real-world DevOps and Solution Architecture practices.
+## Overview
 
-This lab simulates:
+This project demonstrates the design and implementation of a highly available, production-style AWS infrastructure using Terraform.
 
-Multi-AZ deployment
+The objective is not only to provision cloud resources, but to design a resilient, secure, and scalable architecture aligned with real-world DevOps, Cloud Engineering, and Solution Architecture practices.
 
-Auto Scaling & Load Balancing
+This lab simulates enterprise-grade infrastructure patterns including multi-AZ deployment, auto scaling, secure networking, and failure recovery scenarios.
 
-Private networking architecture
+---
 
-Failure handling scenarios
+## Architecture Summary
 
-Cost optimization decisions
+### Core AWS Services Used
 
-Infrastructure troubleshooting
+- Amazon VPC (10.0.0.0/16)
+- Public and Private Subnets (Multi-AZ)
+- Internet Gateway
+- NAT Gateway
+- Application Load Balancer (ALB)
+- Target Groups with Health Checks
+- Auto Scaling Group (ASG)
+- Launch Template
+- IAM Roles and Instance Profiles
+- Security Groups
+- Network ACLs
 
-🏗 Architecture Design
-Core Components
+---
 
-Custom VPC (10.0.0.0/16)
+## High-Level Traffic Flow
 
-2 Public Subnets (Multi-AZ)
+Internet  
+→ Application Load Balancer (Public Subnets)  
+→ Target Group  
+→ Auto Scaling Group EC2 Instances (Private Subnets)  
+→ Outbound Internet via NAT Gateway  
 
-2 Private Subnets (Multi-AZ)
+---
 
-Internet Gateway
-
-NAT Gateway (Private subnet outbound access)
-
-Application Load Balancer (Internet-facing)
-
-Auto Scaling Group (Multi-AZ)
-
-Launch Template (Apache bootstrap via user data)
-
-IAM Role (No access keys model)
-
-Security Groups (Least privilege)
-
-Target Group with health checks
-
-🔄 Traffic Flow
-Internet
-   ↓
-Application Load Balancer (Public Subnets)
-   ↓
-Target Group
-   ↓
-Auto Scaling Group Instances (Private Subnets)
-   ↓
-Outbound traffic via NAT Gateway
-
-🔐 Security Design
+## Security Architecture
 
 This infrastructure follows security-first principles:
 
-EC2 instances deployed in private subnets
+- EC2 instances deployed in private subnets
+- No direct public SSH access
+- IAM Roles used instead of access keys
+- Least privilege security group rules
+- ALB as the only public entry point
+- Health checks enforcing instance reliability
+- Controlled outbound access via NAT Gateway
 
-No direct public SSH access
+---
 
-IAM Roles used instead of static credentials
-
-Security groups restricted by function
-
-Load balancer handles public traffic exposure
-
-Health checks enforce instance reliability
-
-⚙️ Terraform Implementation
+## Terraform Implementation
 
 Infrastructure is provisioned entirely using Terraform.
 
-Structure
+### Structure
+
 terraform/
- ├── main.tf
- ├── variables.tf
- ├── outputs.tf
- ├── providers.tf
+├── main.tf  
+├── providers.tf  
+├── variables.tf  
+├── outputs.tf  
 
-Core Concepts Used
+### Key Terraform Concepts Applied
 
-Resource dependencies
+- Infrastructure as Code (IaC)
+- Resource dependency management
+- Launch Templates with user data bootstrap
+- Auto Scaling Group lifecycle management
+- ALB target group attachments
+- Multi-AZ subnet distribution
+- IAM instance profile association
+- Health check configuration
+- State management and drift handling
 
-Launch Templates
+---
 
-Auto Scaling Groups
+## Failure Simulation & Troubleshooting
 
-ALB target group attachments
+This lab intentionally includes failure scenarios to simulate real production debugging:
 
-Multi-AZ subnet distribution
+- NAT route misconfiguration
+- NACL outbound rule blocking internet access
+- ALB health check failures
+- Security group dependency violations
+- Terraform destroy dependency conflicts
+- Manual resource drift vs Terraform state
 
-Health check configuration
+Issues were diagnosed using:
 
-IAM instance profile association
+- Linux networking commands (ip route, curl, tracepath)
+- Systemctl service validation
+- Terraform plan and state inspection
+- AWS Console verification
+- Route table and NACL auditing
 
-🧪 Failure Simulation & Troubleshooting
+---
 
-This lab intentionally included failure scenarios to simulate production troubleshooting:
+## Cost Optimization Considerations
 
-❌ NAT route misconfiguration
+- Instance sizing strategy (t3.micro evaluation)
+- Single NAT vs Multi-NAT architecture trade-offs
+- Resource lifecycle management using terraform destroy
+- Minimizing idle infrastructure
+- Understanding AWS billing impact of networking components
 
-❌ NACL outbound rule blocking internet access
+---
 
-❌ ALB health check failures
+## DevOps & Cloud Skills Demonstrated
 
-❌ Dependency violations during resource destroy
+- AWS Networking (VPC, Subnets, Route Tables, NACLs, SGs)
+- High Availability Design (Multi-AZ)
+- Auto Scaling & Load Balancing
+- Infrastructure as Code (Terraform)
+- IAM Role-Based Access Control
+- Linux Server Administration
+- Production Troubleshooting
+- Infrastructure Debugging
+- Failure Domain Analysis
+- Cost-Aware Architecture Design
 
-❌ Manual resource drift vs Terraform state
+---
 
-Each issue was diagnosed using:
+## Terraform Commands Used
 
-Linux networking commands (ip route, curl, tracepath)
+terraform init  
+terraform fmt  
+terraform validate  
+terraform plan  
+terraform apply  
+terraform destroy  
+terraform state list  
+terraform state rm  
 
-AWS Console inspection
+---
 
-Terraform plan & state analysis
+## Current Capabilities
 
-Security group & NACL rule auditing
+- Multi-AZ Application Deployment
+- Load Balanced Infrastructure
+- Auto Scaling Enabled
+- Health Check Monitoring
+- Private Subnet Architecture
+- IAM-Based Access Model
 
-💰 Cost Optimization Decisions
+---
 
-This project evaluates cost trade-offs including:
+## Future Enhancements
 
-t3.micro instance sizing
+- HTTPS with ACM Certificate
+- AWS WAF Integration
+- Blue-Green Deployment Strategy
+- CloudWatch Dashboards & Alarms
+- RDS Multi-AZ Database Layer
+- CI/CD Integration (GitHub Actions / Jenkins)
+- EKS-Based Containerized Architecture
 
-Single NAT vs Multi-NAT architecture
+---
 
-On-demand vs Reserved pricing strategy
-
-Resource cleanup via Terraform destroy
-
-Minimizing idle infrastructure
-
-📊 Key Learning Outcomes
-
-Designing resilient multi-AZ infrastructure
-
-Understanding AWS networking deeply (Route Tables, NACLs, SGs)
-
-Debugging real-world connectivity issues
-
-Managing Terraform state responsibly
-
-Avoiding manual drift in IaC environments
-
-Thinking in terms of failure domains
-
-🛠 Terraform Commands Used
-terraform init        # Initialize provider & modules
-terraform fmt         # Format code
-terraform validate    # Validate configuration
-terraform plan        # Preview infrastructure changes
-terraform apply       # Provision infrastructure
-terraform destroy     # Tear down infrastructure
-terraform state list  # Inspect state
-terraform state rm    # Remove orphaned resources
-
-📈 Current Capabilities
-
-✔ Multi-AZ Application Deployment
-✔ Load Balanced Infrastructure
-✔ Auto Scaling Enabled
-✔ Health Check Monitoring
-✔ Private Subnet Architecture
-✔ IAM-based Access Model
-
-🚀 Future Enhancements
-
-HTTPS with ACM certificate
-
-WAF integration
-
-Blue-Green deployment strategy
-
-CloudWatch dashboards & alarms
-
-RDS Multi-AZ database layer
-
-CI/CD pipeline integration (GitHub Actions / Jenkins)
-
-EKS-based containerized architecture
-
-📎 Why This Project Matters
+## Why This Project Matters
 
 This project reflects:
 
-Infrastructure engineering mindset
+- Infrastructure engineering mindset
+- Production-aware design decisions
+- Hands-on troubleshooting capability
+- Clean Infrastructure-as-Code practices
+- Multi-layer AWS networking understanding
 
-Production-aware design decisions
+It serves as a portfolio-level demonstration of practical DevOps and cloud architecture skills.
 
-Hands-on troubleshooting capability
+---
 
-Clean Infrastructure-as-Code practices
+## Author
 
-Multi-layer AWS networking understanding
-
-It is built as a portfolio-level demonstration of real-world DevOps engineering skills.
-
-👨‍💻 Author
-
-Akshay Ghalme
+Akshay Ghalme  
 DevOps Engineer | AWS | Terraform | High Availability Architectures
