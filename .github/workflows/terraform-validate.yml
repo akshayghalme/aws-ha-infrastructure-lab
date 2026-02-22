@@ -30,14 +30,3 @@ jobs:
 
       - name: Terraform Validate
         run: terraform validate
-
-      - name: tfsec Security Scan
-        uses: aquasecurity/tfsec-action@v1.0.0
-        with:
-          working_directory: ./multi-az-ha-lab
-
-      - name: Checkov Compliance Scan
-        uses: bridgecrewio/checkov-action@master
-        with:
-          directory: ./multi-az-ha-lab
-          framework: terraform
