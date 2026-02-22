@@ -1,3 +1,5 @@
+![Terraform CI](https://github.com/akshayghalme/aws-ha-infrastructure-lab/actions/workflows/terraform-validate.yml/badge.svg)
+
 # AWS High-Availability Infrastructure Lab
 
 Production-Grade Multi-AZ Architecture using Terraform (Infrastructure as Code)
