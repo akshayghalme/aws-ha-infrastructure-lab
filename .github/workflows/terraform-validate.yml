@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: multi-az-ha-lab
+        working-directory: ./multi-az-ha-lab
 
     steps:
       - uses: actions/checkout@v4
@@ -34,10 +34,10 @@ jobs:
       - name: tfsec Security Scan
         uses: aquasecurity/tfsec-action@v1.0.0
         with:
-          working_directory: multi-az-ha-lab
+          working_directory: ./multi-az-ha-lab
 
       - name: Checkov Compliance Scan
         uses: bridgecrewio/checkov-action@master
         with:
-          directory: multi-az-ha-lab
+          directory: ./multi-az-ha-lab
           framework: terraform
