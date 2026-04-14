@@ -67,11 +67,15 @@ Infrastructure is provisioned entirely using Terraform.
 
 ### Structure
 
-terraform/
-├── main.tf  
-├── providers.tf  
-├── variables.tf  
-├── outputs.tf  
+multi-az-ha-lab/
+├── providers.tf   # Terraform + AWS provider, AMI/AZ data sources
+├── variables.tf   # All tunables (region, CIDRs, instance type, ASG sizing)
+├── vpc.tf         # VPC, subnets, IGW, NAT, route tables
+├── security.tf    # Security groups
+├── iam.tf         # EC2 IAM role + SSM instance profile
+├── alb.tf         # ALB, target group, listener
+├── compute.tf     # Launch template + ASG
+└── outputs.tf     # ALB URL, VPC/subnet IDs
 
 ### Key Terraform Concepts Applied
 
@@ -157,15 +161,22 @@ terraform state rm
 
 ---
 
-## Future Enhancements
+## Usage
 
-- HTTPS with ACM Certificate
-- AWS WAF Integration
-- Blue-Green Deployment Strategy
-- CloudWatch Dashboards & Alarms
-- RDS Multi-AZ Database Layer
-- CI/CD Integration (GitHub Actions / Jenkins)
-- EKS-Based Containerized Architecture
+```bash
+cd multi-az-ha-lab
+terraform init
+terraform plan -out=tfplan
+terraform apply tfplan
+
+# reach the app
+terraform output alb_url
+
+# tear down (NAT + ALB cost ~$50/mo idle)
+terraform destroy
+```
+
+All knobs live in `variables.tf` — override via `-var` or a `terraform.tfvars` file. Set `single_nat_gateway = false` for true per-AZ HA at ~2× NAT cost.
 
 ---
 

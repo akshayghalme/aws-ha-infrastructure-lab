@@ -1,25 +1,27 @@
 .PHONY: init validate plan apply destroy fmt security cost
 
+TF_DIR := multi-az-ha-lab
+
 init:
-	terraform init
+	terraform -chdir=$(TF_DIR) init
 
 validate:
-	terraform validate && terraform fmt -check
+	terraform -chdir=$(TF_DIR) validate && terraform -chdir=$(TF_DIR) fmt -check
 
 plan:
-	terraform plan -out=tfplan
+	terraform -chdir=$(TF_DIR) plan -out=tfplan
 
 apply:
-	terraform apply tfplan
+	terraform -chdir=$(TF_DIR) apply tfplan
 
 destroy:
-	terraform destroy -auto-approve
+	terraform -chdir=$(TF_DIR) destroy -auto-approve
 
 fmt:
-	terraform fmt -recursive
+	terraform -chdir=$(TF_DIR) fmt -recursive
 
 security:
-	tfsec .
+	tfsec $(TF_DIR)
 
 cost:
-	infracost breakdown --path=.
+	infracost breakdown --path=$(TF_DIR)
