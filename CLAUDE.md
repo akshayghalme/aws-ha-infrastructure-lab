@@ -18,5 +18,5 @@ Default region `ap-south-1` (override via `var.region`). Split across `providers
 
 ## Gotchas
 
-- **No remote backend** — state is local to whoever runs `apply`. `.gitignore` excludes `*.tfstate*`, but coordinate before running `apply` so state doesn't diverge between machines.
+- **Remote backend**: S3 bucket `tfstate-ha-lab-334044477795` + DynamoDB lock table `tfstate-ha-lab-locks` in `ap-south-1`. Bootstrap resources were created out-of-band via AWS CLI (see README "Remote State" section). Any clone must change the bucket name in `providers.tf` to match their account before `terraform init`.
 - NAT + ALB cost ~$50/mo idle in `ap-south-1`. Run `terraform destroy` when done.

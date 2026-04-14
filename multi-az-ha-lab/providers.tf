@@ -6,6 +6,14 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+  backend "s3" {
+    bucket         = "tfstate-ha-lab-334044477795"
+    key            = "multi-az-ha-lab/terraform.tfstate"
+    region         = "ap-south-1"
+    dynamodb_table = "tfstate-ha-lab-locks"
+    encrypt        = true
+  }
 }
 
 provider "aws" {
@@ -29,7 +37,7 @@ data "aws_ami" "ubuntu" {
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-jammy-22.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
   }
 
   filter {
