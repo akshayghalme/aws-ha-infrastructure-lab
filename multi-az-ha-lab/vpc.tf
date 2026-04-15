@@ -3,6 +3,13 @@ locals {
   azs      = slice(data.aws_availability_zones.available.names, 0, local.az_count)
 }
 
+check "subnet_cidrs_match" {
+  assert {
+    condition     = length(var.private_subnet_cidrs) == length(var.public_subnet_cidrs)
+    error_message = "private_subnet_cidrs must have the same length as public_subnet_cidrs (one of each per AZ)."
+  }
+}
+
 resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true

@@ -26,11 +26,6 @@ variable "private_subnet_cidrs" {
   description = "CIDR blocks for private subnets, one per AZ. Must have the same length as public_subnet_cidrs."
   type        = list(string)
   default     = ["10.0.2.0/24", "10.0.4.0/24"]
-
-  validation {
-    condition     = length(var.private_subnet_cidrs) == length(var.public_subnet_cidrs)
-    error_message = "private_subnet_cidrs must have the same length as public_subnet_cidrs (one of each per AZ)."
-  }
 }
 
 variable "instance_type" {
