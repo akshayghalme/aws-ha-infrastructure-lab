@@ -23,27 +23,25 @@ This lab simulates enterprise-grade infrastructure patterns including multi-AZ d
 
 ### Core AWS Services Used
 
-- Amazon VPC (10.0.0.0/16)
-- Public and Private Subnets (Multi-AZ)
-- Internet Gateway
-- NAT Gateway
-- Application Load Balancer (ALB)
-- Target Groups with Health Checks
-- Auto Scaling Group (ASG)
-- Launch Template
-- IAM Roles and Instance Profiles
-- Security Groups
-- Network ACLs
+- Amazon VPC (10.0.0.0/16) with public/private subnets across multiple AZs
+- Internet Gateway + NAT Gateway(s) (single or per-AZ, toggleable)
+- Application Load Balancer with target groups and health checks
+- Auto Scaling Group with Launch Template, rolling instance refresh
+- EC2 (Ubuntu 22.04 via data source, nginx bootstrap + node_exporter)
+- IAM roles / instance profiles (SSM-managed, no SSH)
+- Security Groups (ALB → app → monitoring, least privilege)
+- Monitoring EC2 running Prometheus + Grafana (Docker)
+- S3 + DynamoDB for remote Terraform state and locking
 
 ---
 
 ## High-Level Traffic Flow
 
-Internet  
-→ Application Load Balancer (Public Subnets)  
-→ Target Group  
-→ Auto Scaling Group EC2 Instances (Private Subnets)  
-→ Outbound Internet via NAT Gateway  
+**App request path**
+Internet → ALB (public subnets) → Target Group → ASG EC2 in private subnets → Outbound egress via NAT Gateway.
+
+**Observability path**
+Prometheus (monitoring EC2, public subnet) uses the AWS EC2 service discovery API to find app instances tagged `Project=ha-lab`, then scrapes `node_exporter` on port 9100 across the VPC's private subnets. Grafana queries Prometheus locally and serves dashboards on port 3000 to the `admin_cidr` allowlist.
 
 ---
 
@@ -51,13 +49,14 @@ Internet
 
 This infrastructure follows security-first principles:
 
-- EC2 instances deployed in private subnets
-- No direct public SSH access
-- IAM Roles used instead of access keys
-- Least privilege security group rules
-- ALB as the only public entry point
-- Health checks enforcing instance reliability
-- Controlled outbound access via NAT Gateway
+- App EC2 instances deployed in private subnets with no public IPs
+- No SSH at all — access is via AWS Systems Manager Session Manager
+- IAM instance profiles instead of long-lived access keys
+- Least-privilege security groups: ALB → app on 80, monitoring → app on 9100
+- ALB is the only public entry point for application traffic
+- IMDSv2 required on the monitoring instance (`http_tokens = "required"`)
+- Grafana/Prometheus UIs gated by `var.admin_cidr` (lock to your IP in real use)
+- Remote state bucket is versioned, encrypted at rest, and public-access-blocked
 
 ---
 
@@ -68,96 +67,67 @@ Infrastructure is provisioned entirely using Terraform.
 ### Structure
 
 multi-az-ha-lab/
-├── providers.tf   # Terraform + AWS provider, AMI/AZ data sources
-├── variables.tf   # All tunables (region, CIDRs, instance type, ASG sizing)
-├── vpc.tf         # VPC, subnets, IGW, NAT, route tables
-├── security.tf    # Security groups
-├── iam.tf         # EC2 IAM role + SSM instance profile
-├── alb.tf         # ALB, target group, listener
-├── compute.tf     # Launch template + ASG
-└── outputs.tf     # ALB URL, VPC/subnet IDs
+├── providers.tf    # Terraform + AWS provider, S3 backend, AMI/AZ data sources
+├── variables.tf    # All tunables (region, CIDRs, instance type, ASG sizing, NAT toggle, admin_cidr)
+├── vpc.tf          # VPC, subnets, IGW, NAT, route tables, CIDR sanity check
+├── security.tf     # Security groups (ALB, app, monitoring)
+├── iam.tf          # EC2 IAM role + SSM instance profile
+├── alb.tf          # ALB, target group, listener
+├── compute.tf      # Launch template + ASG (instance refresh, health check grace)
+├── monitoring.tf   # Prometheus + Grafana EC2, monitoring IAM + SG
+├── templates/      # templatefile() sources for prometheus.yml and user_data
+└── outputs.tf      # alb_url, grafana_url, prometheus_url, ids
 
 ### Key Terraform Concepts Applied
 
-- Infrastructure as Code (IaC)
-- Resource dependency management
-- Launch Templates with user data bootstrap
-- Auto Scaling Group lifecycle management
-- ALB target group attachments
-- Multi-AZ subnet distribution
-- IAM instance profile association
-- Health check configuration
-- State management and drift handling
+- Remote state backend (S3 + DynamoDB lock) with versioning and encryption
+- `data` sources for dynamic AZ discovery and latest Ubuntu AMI
+- `templatefile()` for injecting variables into Prometheus config and user_data
+- Launch template with `create_before_destroy` + ASG `instance_refresh` for zero-downtime rollouts
+- `health_check_grace_period` tuned so ELB doesn't kill instances mid-bootstrap
+- `count`-driven subnet/NAT resources with a `var.single_nat_gateway` HA/cost toggle
+- `default_tags` on the provider plus explicit tags where `tag_specifications` are required
+- Top-level `check` block validating cross-variable invariants
+- `name_prefix` on ASG so replace-forcing changes don't collide
 
 ---
 
-## Failure Simulation & Troubleshooting
+## Cost Notes
 
-This lab intentionally includes failure scenarios to simulate real production debugging:
+Idle cost in `ap-south-1` is roughly:
 
-- NAT route misconfiguration
-- NACL outbound rule blocking internet access
-- ALB health check failures
-- Security group dependency violations
-- Terraform destroy dependency conflicts
-- Manual resource drift vs Terraform state
+- NAT Gateway: ~$32/mo (single-NAT mode; doubles with `single_nat_gateway = false`)
+- Application Load Balancer: ~$16/mo
+- Monitoring EC2 (`t3.small`) + 20 GiB gp3: ~$15/mo
+- App EC2 instances (`t3.micro` × 2): ~$15/mo
+- S3 + DynamoDB state backend: pennies
 
-Issues were diagnosed using:
-
-- Linux networking commands (ip route, curl, tracepath)
-- Systemctl service validation
-- Terraform plan and state inspection
-- AWS Console verification
-- Route table and NACL auditing
-
----
-
-## Cost Optimization Considerations
-
-- Instance sizing strategy (t3.micro evaluation)
-- Single NAT vs Multi-NAT architecture trade-offs
-- Resource lifecycle management using terraform destroy
-- Minimizing idle infrastructure
-- Understanding AWS billing impact of networking components
+**~$80/mo** all-in if left running. Destroy with `terraform destroy` between demos.
 
 ---
 
 ## DevOps & Cloud Skills Demonstrated
 
-- AWS Networking (VPC, Subnets, Route Tables, NACLs, SGs)
-- High Availability Design (Multi-AZ)
-- Auto Scaling & Load Balancing
-- Infrastructure as Code (Terraform)
-- IAM Role-Based Access Control
-- Linux Server Administration
-- Production Troubleshooting
-- Infrastructure Debugging
-- Failure Domain Analysis
-- Cost-Aware Architecture Design
-
----
-
-## Terraform Commands Used
-
-terraform init  
-terraform fmt  
-terraform validate  
-terraform plan  
-terraform apply  
-terraform destroy  
-terraform state list  
-terraform state rm  
+- AWS networking: VPC, subnets, route tables, security groups, NAT/IGW topology
+- High-availability design across multiple AZs with a toggleable NAT HA/cost trade-off
+- Auto Scaling + Load Balancing with zero-downtime rolling updates (instance refresh)
+- Terraform: modules-less but file-split, remote state, data sources, `templatefile()`, `check` blocks
+- IAM role-based access, SSM-only host access (no SSH, no bastion)
+- Observability: Prometheus EC2 service discovery, Grafana dashboards, node_exporter
+- CI: `fmt -check` + `validate` on every push via GitHub Actions
+- Cost-aware architecture (documented idle cost and knobs)
 
 ---
 
 ## Current Capabilities
 
-- Multi-AZ Application Deployment
-- Load Balanced Infrastructure
-- Auto Scaling Enabled
-- Health Check Monitoring
-- Private Subnet Architecture
-- IAM-Based Access Model
+- Multi-AZ application deployment behind an Application Load Balancer
+- Auto Scaling Group with rolling instance refresh on launch template changes
+- Private-subnet EC2, SSM-only access, no SSH
+- Prometheus + Grafana observability with EC2 service discovery
+- Pre-built Node Exporter dashboard (Grafana dashboard ID `1860`) for live CPU / memory / network / disk per instance
+- Remote Terraform state with locking, versioning, and encryption
+- CI runs `terraform fmt -check` + `validate` on every push
 
 ---
 
@@ -198,14 +168,29 @@ terraform init
 terraform plan -out=tfplan
 terraform apply tfplan
 
-# reach the app
+# URLs (also printed at the end of apply)
 terraform output alb_url
+terraform output grafana_url
+terraform output prometheus_url
 
-# tear down (NAT + ALB cost ~$50/mo idle)
+# tear down (NAT + ALB + monitoring EC2 ~$55/mo idle)
 terraform destroy
 ```
 
-All knobs live in `variables.tf` — override via `-var` or a `terraform.tfvars` file. Set `single_nat_gateway = false` for true per-AZ HA at ~2× NAT cost.
+All knobs live in `variables.tf` — override via `-var` or a `terraform.tfvars` file. Set `single_nat_gateway = false` for true per-AZ HA at ~2× NAT cost. Set `admin_cidr` to your own IP to lock down the Grafana/Prometheus UIs.
+
+---
+
+## Observability
+
+The monitoring EC2 boots Docker, writes a templated `prometheus.yml`, and runs Prometheus + Grafana as containers. Prometheus uses the AWS `ec2_sd_configs` service discovery to find every instance tagged `Project=ha-lab` that is `running`, then scrapes `node_exporter` on port 9100 (installed on app instances via `apt-get install prometheus-node-exporter` in user_data).
+
+**After `terraform apply`:**
+1. Open `terraform output grafana_url` (default login `admin` / `admin`).
+2. Add a Prometheus data source — URL is the Prometheus EC2 public IP on port 9090 (Grafana runs in a bridged container, so `localhost` won't reach host-networked Prometheus).
+3. Import dashboard ID `1860` (Node Exporter Full) — the `instance` dropdown switches between ASG hosts.
+
+Prometheus targets page: `${prometheus_url}/targets` — expect `node` job at 2/2 UP once the ASG has cycled in instances with `node_exporter`.
 
 ---
 
