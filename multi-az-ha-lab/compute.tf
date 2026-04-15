@@ -14,17 +14,21 @@ resource "aws_launch_template" "app" {
 
   user_data = base64encode(<<-EOF
     #!/bin/bash
-    apt update -y
-    apt install -y nginx
-    systemctl start nginx
-    systemctl enable nginx
+    set -euxo pipefail
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -y
+    apt-get install -y nginx prometheus-node-exporter
+    systemctl enable --now nginx prometheus-node-exporter
     echo "<h1>HA Lab via ASG - NGINX - $(hostname)</h1>" > /var/www/html/index.nginx-debian.html
   EOF
   )
 
   tag_specifications {
     resource_type = "instance"
-    tags          = { Name = "${var.project}-app" }
+    tags = {
+      Name    = "${var.project}-app"
+      Project = var.project
+    }
   }
 
   lifecycle {

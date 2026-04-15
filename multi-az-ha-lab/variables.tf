@@ -57,6 +57,19 @@ variable "asg_desired_capacity" {
   default     = 2
 }
 
+variable "admin_cidr" {
+  description = "CIDR allowed to reach Grafana/Prometheus on the monitoring instance. Default 0.0.0.0/0 for lab; tighten to your IP in real use."
+  type        = string
+  default     = "0.0.0.0/0"
+}
+
+variable "grafana_admin_password" {
+  description = "Initial admin password for Grafana"
+  type        = string
+  default     = "admin"
+  sensitive   = true
+}
+
 variable "single_nat_gateway" {
   description = "Use a single NAT Gateway (cheap) vs one per AZ (HA). Defaults to single for lab cost."
   type        = bool

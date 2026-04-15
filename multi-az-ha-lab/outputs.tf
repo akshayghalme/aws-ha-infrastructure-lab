@@ -27,3 +27,13 @@ output "asg_name" {
   description = "Name of the Auto Scaling Group running the app"
   value       = aws_autoscaling_group.app.name
 }
+
+output "grafana_url" {
+  description = "Grafana UI (login admin / var.grafana_admin_password)"
+  value       = "http://${aws_instance.monitoring.public_ip}:3000"
+}
+
+output "prometheus_url" {
+  description = "Prometheus UI"
+  value       = "http://${aws_instance.monitoring.public_ip}:9090"
+}
